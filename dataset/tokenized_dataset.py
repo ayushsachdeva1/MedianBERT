@@ -24,9 +24,10 @@ def mask_input(input_ids):
 class TokenizedDataset(torch.utils.data.Dataset):
     "This wraps the dataset and tokenizes it, ready for the model"
 
-    def __init__(self, dataset, tokenizer):
+    def __init__(self, dataset, tokenizer, ids_to_coords=None):
         self.dataset = dataset
         self.tokenizer = tokenizer
+        self.ids_to_coords = ids_to_coords
 
     def __len__(self):
         return len(self.dataset)
@@ -39,5 +40,9 @@ class TokenizedDataset(torch.utils.data.Dataset):
         token_type_ids = data['token_type_ids'][0].detach().clone()
         
         input_ids = mask_input(labels.detach().clone())
+
+        if self.ids_to_coords is not None: 
+            input_ids = self.ids_to_coords[input_ids]
+            # labels = self.ids_to_coords[labels]
         
         return {"input_ids": input_ids, "token_type_ids": token_type_ids, "attention_mask": attention_mask, "labels": labels}

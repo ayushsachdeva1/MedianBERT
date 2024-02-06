@@ -20,12 +20,11 @@ class BaseEmbeddings(nn.Module):
 
         self._position_ids = torch.arange(config.max_position_embeddings, dtype=torch.long).unsqueeze(dim=0)
 
-    def forward(self, token_embeddings, token_type_ids):
-        batch_size, seq_len = token_type_ids.shape
-        seg = self.seg_embeds(token_type_ids)
-        pos = self.pos_embeds(self._position_ids[:, :seq_len].expand(batch_size, -1).to(token_type_ids.device))
-
-        return self.dropout(self.layer_norm(token_embeddings + seg + pos))
+    def forward(self, token_embeddings):
+        batch_size, seq_len, _ = token_embeddings.shape
+        # seg = self.seg_embeds(token_type_ids)
+        pos = self.pos_embeds(self._position_ids[:, :seq_len].expand(batch_size, -1).to(token_embeddings.device))
+        return self.dropout(self.layer_norm(token_embeddings + pos))
 
 
 class StandardEmbeddings(BaseEmbeddings):
@@ -33,8 +32,8 @@ class StandardEmbeddings(BaseEmbeddings):
         super().__init__(config)
         self.tok_embeds = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
 
-    def forward(self, input_ids, token_type_ids):
-        return super().forward(self.tok_embeds(input_ids), token_type_ids)
+    def forward(self, input_ids):
+        return super().forward(self.tok_embeds(input_ids))
 
 
 class HashEmbeddings(BaseEmbeddings):
@@ -45,8 +44,9 @@ class HashEmbeddings(BaseEmbeddings):
         self.tok_embeds = nn.Embedding(rows_count + 1, config.hidden_size, padding_idx=rows_count)
         self.agg_func = getattr(torch, config.agg_func)
 
-    def forward(self, input_ids, token_type_ids):
+    def forward(self, input_ids):
         tok = self.agg_func(self.tok_embeds(input_ids), dim=-2)
         if self.agg_func == torch.median:
             tok = tok.values  # for some reason torch.median returns a namedtuple
-        return super().forward(tok, token_type_ids)
+        
+        return super().forward(tok)

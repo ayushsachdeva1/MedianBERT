@@ -11,7 +11,7 @@ if __name__ == "__main__":
     for row in inputs.input_ids:
         print(tokenizer.convert_ids_to_tokens(row))
     
-    print(inputs.input_ids.shape, inputs.token_type_ids.shape, inputs.attention_mask.shape)
+    print(inputs.input_ids.shape, inputs.attention_mask.shape)
 
     config1 = BertConfig(
         hidden_size=128,
@@ -34,8 +34,9 @@ if __name__ == "__main__":
         pool_size=500,
         agg_func="median",
     )
+
     model2 = BertForMLM(config2)
     ids_to_coords, coords_to_ids = build_lookup_tables(config2, tokenizer)
     x = ids_to_coords[inputs.input_ids]
-    output = model2(x, inputs.token_type_ids, inputs.attention_mask)
+    output = model2(x, inputs.attention_mask)
     print("output shape of hash emb BERT:", output.shape)
